@@ -161,12 +161,14 @@ SceUID ksceAppMgrLaunchAppByPath_patched(const char *path, const char *cmd, int 
 
 SceUID ksceIdStorageLookup_patched_hook = -1;
 static tai_hook_ref_t ksceIdStorageLookup_patched_ref;
-static int ksceIdStorageLookup_patched(u16 key, u32 offset, void *buf, u32 len) {
+static int ksceIdStorageLookup_patched(int key, int offset, char *buf, int len) {
 	uint32_t state;
 	LOG("ksceIdStorageLookup hook started.\n");
-	//LOG("%08X\n", flag);
+	LOG("%08X\n", key);
+	LOG("%08X\n", offset);
+	LOG("%08X\n", len);
 	//log_write(text, strlen(text));
-	//LOG("\n");
+	LOG("\n");
 	ENTER_SYSCALL(state);
 	int ret = TAI_CONTINUE(int, ksceIdStorageLookup_patched_ref, key, offset, buf, len);
 	LOG("ksceIdStorageLookup hook finished: %08X.\n", ret);
@@ -179,7 +181,7 @@ static int ksceIdStorageLookup_patched(u16 key, u32 offset, void *buf, u32 len) 
 
 void _start() __attribute__ ((weak, alias ("module_start")));
 int module_start(SceSize argc, const void *args) {
-	ksceIoRemove(LOG_FILE);
+	//ksceIoRemove(LOG_FILE);
 	LOG("kernel_hooker started.\n");
 	//kscePowerRequestDisplayOff();
 	//kscePowerRequestSoftReset();
