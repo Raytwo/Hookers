@@ -26,11 +26,7 @@ target_link_libraries(kernel_hooker
   SceIofilemgrForDriver_stub
   SceSysmemForDriver_stub
   SceSysclibForDriver_stub
-  SceSblAuthMgrForKernel_stub
-  SceSblSsMgrForDriver_stub
   ScePowerForDriver_stub
-  SceSysrootForDriver_stub
-  SceNpDrmForDriver_stub
 )
 
 vita_create_self(kernel_hooker.skprx kernel_hooker CONFIG exports.yml UNSAFE)

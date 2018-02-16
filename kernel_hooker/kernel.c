@@ -13,6 +13,11 @@
 #include <taihen.h>
 
 
+typedef uint64_t u64;
+typedef uint32_t u32;
+typedef uint16_t u16;
+typedef uint8_t u8;
+
 #define DUMP_PATH "ur0:dump/"
 #define LOG_FILE DUMP_PATH "kplugin-tester_idstorage_log.txt"
 
@@ -119,6 +124,7 @@ SceUID ksceSblSsMgrGetConsoleId_patched(char* kCID) {
 	return ret;
 }*/
 
+/*
 const char launch_path_ux[] = "ux0:/data/bootstrap.self";
 SceUID ksceAppMgrLaunchAppByPath_patched_hook = -1;
 static tai_hook_ref_t ksceAppMgrLaunchAppByPath_patched_ref;
@@ -151,179 +157,25 @@ SceUID ksceAppMgrLaunchAppByPath_patched(const char *path, const char *cmd, int 
 	EXIT_SYSCALL(state);
 	return ret;
 }
+*/
 
-SceUID appmgr_patched_hook = -1;
-static tai_hook_ref_t appmgr_patched_ref;
-static int appmgr_patched(const char* path, char* info) {
+SceUID ksceIdStorageLookup_patched_hook = -1;
+static tai_hook_ref_t ksceIdStorageLookup_patched_ref;
+static int ksceIdStorageLookup_patched(u16 key, u32 offset, void *buf, u32 len) {
 	uint32_t state;
-	LOG("appmgr hook started.\n");
-	log_write(path, strlen(path));
-	LOG("\n");
-	ENTER_SYSCALL(state);
-	int ret = TAI_CONTINUE(int, appmgr_patched_ref, path, info);
-	LOG("appmgr hook finished: %08X.\n", ret);
-	EXIT_SYSCALL(state);
-	return ret;
-}
-
-SceUID sub_810180E0_patched_hook = -1;
-static tai_hook_ref_t sub_810180E0_patched_ref;
-static int sub_810180E0_patched(char* path, char* path2, int unk) {
-	uint32_t state;
-	LOG("sub_810180E0 hook started.\n");
-	log_write(path, strlen(path));
-	LOG("\n");
-	log_write(path2, strlen(path2));
-	LOG("\n%08X\n", unk);
-	ENTER_SYSCALL(state);
-	int ret = TAI_CONTINUE(int, sub_810180E0_patched_ref, path, path2, unk);
-	LOG("sub_810180E0 hook finished: %08X.\n", ret);
-	EXIT_SYSCALL(state);
-	return ret;
-}
-
-SceUID sub_810322E4_patched_hook = -1;
-static tai_hook_ref_t sub_810322E4_patched_ref;
-static int sub_810322E4_patched(int flag, char* text) {
-	uint32_t state;
-	LOG("sub_810322E4 hook started.\n");
-	LOG("%08X\n", flag);
-	log_write(text, strlen(text));
-	LOG("\n");
-	ENTER_SYSCALL(state);
-	int ret = TAI_CONTINUE(int, sub_810322E4_patched_ref, flag, text);
-	LOG("sub_810322E4 hook finished: %08X.\n", ret);
-	EXIT_SYSCALL(state);
-	return ret;
-}
-
-SceUID sub_8100B734_patched_hook = -1;
-static tai_hook_ref_t sub_8100B734_patched_ref;
-static SceUID sub_8100B734_patched(char* pointer, int zero, char* text, int moinsun, int a1, int moinsun2) {
-	uint32_t state;
-	LOG("sub_8100B734 hook started.\n");
-	LOG("%08X\n%08X\n%08X\n%08X\n%08X\n", pointer, a1, moinsun, a1, moinsun2);
+	LOG("ksceIdStorageLookup hook started.\n");
+	//LOG("%08X\n", flag);
 	//log_write(text, strlen(text));
 	//LOG("\n");
 	ENTER_SYSCALL(state);
-	SceUID ret = TAI_CONTINUE(SceUID, sub_8100B734_patched_ref, pointer, zero, text, moinsun, a1, moinsun2);
-	LOG("sub_8100B734 hook finished: %08X.\n", ret);
-	log_write(pointer, 0x10);
-	LOG("\n");
+	int ret = TAI_CONTINUE(int, ksceIdStorageLookup_patched_ref, key, offset, buf, len);
+	LOG("ksceIdStorageLookup hook finished: %08X.\n", ret);
 	EXIT_SYSCALL(state);
 	return ret;
 }
 
-SceUID ksceSysrootGetSystemSwVersion_patched_hook = -1;
-static tai_hook_ref_t ksceSysrootGetSystemSwVersion_patched_ref;
-SceUID ksceSysrootGetSystemSwVersion_patched() {
-	LOG("Beginning of the Get Version hook.\n");
-	return 0x3650000;
-}
 
-SceUID ksceSblAuthMgrCompareSwVersion_patched_hook = -1;
-static tai_hook_ref_t ksceSblAuthMgrCompareSwVersion_patched_ref;
-SceUID ksceSblAuthMgrCompareSwVersion_patched(int version) {
-	LOG("Beginning of the ksceSblAuthMgrCompareSwVersion hook.\n");
-	SceUID ret = TAI_CONTINUE(SceUID, ksceSblAuthMgrCompareSwVersion_patched_ref, version);
-	LOG("version :%08X\nret:%08X\n", version, ret);
-	return 0;
-}
-
-SceUID kscePfsMgrMount_patched_hook = -1;
-static tai_hook_ref_t kscePfsMgrMount_patched_ref;
-SceUID kscePfsMgrMount_patched(char *original_path, char *mount_point, void *klicensee, unsigned int type) {
-	LOG("Beginning of the kscePfsMgrMount hook.\n");
-	SceUID ret = TAI_CONTINUE(SceUID, kscePfsMgrMount_patched_ref, original_path, mount_point, klicensee, type);
-	LOG("klic:\n");
-	log_write(klicensee, 0x10);
-	LOG("\n");
-	LOG("%s\n%s\n", original_path, mount_point);
-	LOG("type:%08X\nret:%08X\n", type, ret);
-	return ret;
-}
-SceUID kscePfsMgrMountWithAuthId_patched_hook = -1;
-static tai_hook_ref_t kscePfsMgrMountWithAuthId_patched_ref;
-SceUID kscePfsMgrMountWithAuthId_patched(char *original_path, char *mount_point, SceUInt64 authid, void *klicensee, unsigned int type) {
-	LOG("Beginning of the kscePfsMgrMountWithAuthId hook.\n");
-	SceUID ret = TAI_CONTINUE(SceUID, kscePfsMgrMountWithAuthId_patched_ref, original_path, mount_point, authid, klicensee, type);
-	LOG("authid:\n");
-	log_write(&authid, 0x8);
-	LOG("\n");
-	LOG("klic:\n");
-	log_write(klicensee, 0x10);
-	LOG("\n");
-	LOG("orig_path:%s\nMP:%s\n", original_path, mount_point);
-	LOG("type:%08X\nret:%08X\n", type, ret);
-	return ret;
-}
-SceUID kscePfsMgrUnmount_patched_hook = -1;
-static tai_hook_ref_t kscePfsMgrUnmount_patched_ref;
-SceUID kscePfsMgrUnmount_patched(char *mount_point) {
-	LOG("Beginning of the kscePfsMgrUnmount hook.\n");
-	SceUID ret = TAI_CONTINUE(SceUID, kscePfsMgrUnmount_patched_ref, mount_point);
-	LOG("MP:%s\nret:%08X\n", mount_point, ret);
-	return ret;
-}
-
-
-SceUID module_start_patched_hook = -1;
-static tai_hook_ref_t module_start_patched_ref;
-SceUID module_start_patched(int a1, int a2) {
-	LOG("Beginning of the module_start hook.\n");
-	SceUID ret = TAI_CONTINUE(SceUID, module_start_patched_ref, a1, a2);
-	//LOG("MP:%s\nret:%08X\n", mount_point, ret);
-	return ret;
-}
-
-
-int offset = 0;
-void* out_buf;
-uint32_t total = 0;
-uint32_t length = 0;
-
-SceUID ksceSblAuthMgrParseSelfHeader_patched_hook = -1;
-static tai_hook_ref_t ksceSblAuthMgrParseSelfHeader_patched_ref;
-static int ksceSblAuthMgrParseSelfHeader_patched(int ctx, const void *self_header, size_t length, header_ctx *buffer) {
-	uint32_t state;
-	ENTER_SYSCALL(state);
-	//LOG("Start of ksceSblAuthMgrParseSelfHeader hook.\n");
-	//LOG("%i\n", ctx);
-	//log_write(self_header, length);
-	//LOG("\n");
-	LOG("self hdr length:%i\n", length);
-	//log_write(buffer, 0x130);
-	//LOG("\n");
-	int ret = TAI_CONTINUE(int, ksceSblAuthMgrParseSelfHeader_patched_ref, ctx, self_header, length, buffer);
-	/*process_auth_id_ctx auth_ctx = buffer->auth_ctx;
-	log_write(auth_ctx.klicensee, 0x10);
-	//log_write(buffer, 0x130);
-	LOG("\n");*/
-	//LOG("End of ksceSblAuthMgrParseSelfHeader hook.\n");
-	EXIT_SYSCALL(state);
-	return ret;
-}
-
-SceUID ksceSblAuthMgrSetupOutputBuffer_patched_hook = -1;
-static tai_hook_ref_t ksceSblAuthMgrSetupOutputBuffer_patched_ref;
-static int ksceSblAuthMgrSetupOutputBuffer_patched(int ctx, int seg_num, int seg_length, void *out_buffer, uint32_t filesz) {
-	uint32_t state;
-	ENTER_SYSCALL(state);
-	//LOG("Beginning of ksceSblAuthMgrSetupOutputBuffer hook.\n");
-	//LOG("%i\n", ctx);
-	int ret = TAI_CONTINUE(int, ksceSblAuthMgrSetupOutputBuffer_patched_ref, ctx, seg_num, seg_length, out_buffer, filesz);
-	LOG("seg%i\n", seg_num);
-	//LOG("%X\n", seg_length);
-	//LOG("%X\n", filesz);
-	out_buf = out_buffer;
-	total = 0x1000;
-	length = 0x1000;
-	//LOG("End of ksceSblAuthMgrSetupOutputBuffer hook.\n");
-	EXIT_SYSCALL(state);
-	return ret;
-}
-
-static int (* appmgr)(const char* path, void* a2) = NULL;
+//static int (* appmgr)(const char* path, void* a2) = NULL;
 
 void _start() __attribute__ ((weak, alias ("module_start")));
 int module_start(SceSize argc, const void *args) {
@@ -332,6 +184,7 @@ int module_start(SceSize argc, const void *args) {
 	//kscePowerRequestDisplayOff();
 	//kscePowerRequestSoftReset();
 	
+	/*
 	tai_module_info_t info;
 	taiGetModuleInfoForKernel(KERNEL_PID, "SceAppMgr", &info);
 	LOG("Installing appmgr hook...\n");
@@ -350,12 +203,12 @@ int module_start(SceSize argc, const void *args) {
 	log_write(buf, 0xD0);
 	LOG("\n");*/
 	
-	module_start_patched_hook = taiHookFunctionExportForKernel(KERNEL_PID,      // Kernel process
-							 &module_start_patched_ref,       // Output a reference
-							 "SceDriverUser",  // Name of module being hooked
+	ksceIdStorageLookup_patched_hook = taiHookFunctionExportForKernel(KERNEL_PID,      // Kernel process
+							 &ksceIdStorageLookup_patched_ref,       // Output a reference
+							 "SceIdStorage",  // Name of module being hooked
 							 TAI_ANY_LIBRARY, // any library
-							 0x935cd196,      // NID specifying `module_start`
-							 module_start); // Name of the hook function
+							 0x6FE062D1,      // NID specifying `ksceIdStorageLookup`
+							 ksceIdStorageLookup_patched); // Name of the hook function
 	
 	LOG("kernel_hooker module_start sucessfully ended.\n");
 	return SCE_KERNEL_START_SUCCESS;
