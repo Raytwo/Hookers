@@ -12,41 +12,9 @@
 
 #include <taihen.h>
 
-typedef struct process_auth_id_ctx //size is 0x90
-{
-   uint32_t unk_8;
-   uint32_t unk_C;
-   uint32_t unk_10[20];
-   uint32_t unk_60;
-   uint32_t unk_64;
-   char klicensee[0x10]; // offset 0x68
-   uint32_t unk_78;
-   uint32_t unk_7C;
-   uint32_t unk_80;
-   uint32_t unk_84;
-   uint32_t unk_88;
-   uint32_t unk_8C;
-   uint32_t unk_90;
-   uint32_t unk_94;
-}process_auth_id_ctx;
-
-typedef struct header_ctx_response //size is 0x90
-{  
-   char data[0x90]; // offset 0x98
-}header_ctx_response;
-
-typedef struct header_ctx // size is 0x130. probably SceSblSmCommContext130
-{
-   uint32_t unk_0;
-   uint32_t self_type; //used - user = 1 / kernel = 0
-   process_auth_id_ctx auth_ctx; //size is 0x90 - can be obtained with ksceKernelGetProcessAuthid
-   header_ctx_response resp; //size is 0x90
-   uint32_t unk_128; // used - SceSblACMgrForKernel_d442962e related
-   uint32_t unk_12C;
-}header_ctx;
 
 #define DUMP_PATH "ur0:dump/"
-#define LOG_FILE DUMP_PATH "kplugin-tester_log.txt"
+#define LOG_FILE DUMP_PATH "kplugin-tester_idstorage_log.txt"
 
 static void log_write(const char *buffer, size_t length);
 
@@ -355,44 +323,14 @@ static int ksceSblAuthMgrSetupOutputBuffer_patched(int ctx, int seg_num, int seg
 	return ret;
 }
 
-SceUID ksceSblAuthMgrCopyToOutputBuffer_patched_hook = -1;
-static tai_hook_ref_t ksceSblAuthMgrCopyToOutputBuffer_patched_ref;
-static int ksceSblAuthMgrCopyToOutputBuffer_patched(int ctx, char* data_buf_aligned, int off) {
-	uint32_t state;
-	ENTER_SYSCALL(state);
-	//LOG("Beginning of ksceSblAuthMgrSetupOutputBuffer hook.\n");
-	//LOG("%i\n", ctx);
-	//LOG("off:%i\n", off);
-	int ret = TAI_CONTINUE(int, ksceSblAuthMgrCopyToOutputBuffer_patched_ref, ctx, data_buf_aligned, off);
-	LOG("off2:%i\n", off);
-	total -= off;
-	offset = off;
-	LOG("total:%i\n", total);
-	//if (total <= 100) {
-		log_write(out_buf+offset, 0x1000);
-		LOG("\n\n");
-	//}
-	//LOG("End of ksceSblAuthMgrSetupOutputBuffer hook.\n");
-	EXIT_SYSCALL(state);
-	return ret;
-}
-
 static int (* appmgr)(const char* path, void* a2) = NULL;
 
 void _start() __attribute__ ((weak, alias ("module_start")));
 int module_start(SceSize argc, const void *args) {
-	ksceIoRemove("ur0:dump/kplugin-tester_log.txt");
-	LOG("kplugin-tester started.\n");
+	ksceIoRemove(LOG_FILE);
+	LOG("kernel_hooker started.\n");
 	//kscePowerRequestDisplayOff();
 	//kscePowerRequestSoftReset();
-	
-	/*LOG("Installing LaunchByPath hook...\n");
-	ksceAppMgrLaunchAppByPath_patched_hook = taiHookFunctionExportForKernel(KERNEL_PID,      // Kernel process
-                                 &ksceAppMgrLaunchAppByPath_patched_ref,       // Output a reference
-                                 "SceAppMgr",  // Name of module being hooked
-                                 TAI_ANY_LIBRARY, // library : SceVhBridge
-                                 0xB0A37065,      // NID specifying `ksceAppMgrLaunchAppByPath`
-                                 ksceAppMgrLaunchAppByPath_patched); // Name of the hook function*/
 	
 	tai_module_info_t info;
 	taiGetModuleInfoForKernel(KERNEL_PID, "SceAppMgr", &info);
@@ -401,6 +339,7 @@ int module_start(SceSize argc, const void *args) {
 	sub_810180E0_patched_hook = taiHookFunctionOffsetForKernel(KERNEL_PID, &sub_810180E0_patched_ref, info.modid, 0, 0x180E0, 1, sub_810180E0_patched);
 	sub_810322E4_patched_hook = taiHookFunctionOffsetForKernel(KERNEL_PID, &sub_810322E4_patched_ref, info.modid, 0, 0x322E4, 1, sub_810322E4_patched);
 	sub_8100B734_patched_hook = taiHookFunctionOffsetForKernel(KERNEL_PID, &sub_8100B734_patched_ref, info.modid, 0, 0xB734, 1, sub_8100B734_patched);
+	*/
 	
 	// Get important function
 	/*module_get_offset(KERNEL_PID, info.modid, 0, 0x1642D, (uintptr_t *)&appmgr);
@@ -411,40 +350,6 @@ int module_start(SceSize argc, const void *args) {
 	log_write(buf, 0xD0);
 	LOG("\n");*/
 	
-	ksceSysrootGetSystemSwVersion_patched_hook = taiHookFunctionExportForKernel(KERNEL_PID,      // Kernel process
-							 &ksceSysrootGetSystemSwVersion_patched_ref,       // Output a reference
-							 "SceSysmem",  // Name of module being hooked
-							 TAI_ANY_LIBRARY, // any library
-							 0x67AAB627,      // NID specifying `ksceSysrootGetSystemSwVersion`
-							 ksceSysrootGetSystemSwVersion_patched); // Name of the hook function
-	int swVersion = ksceSysrootGetSystemSwVersion();
-	LOG("%08X\n", swVersion);
-	ksceSblAuthMgrCompareSwVersion_patched_hook = taiHookFunctionExportForKernel(KERNEL_PID,      // Kernel process
-							 &ksceSblAuthMgrCompareSwVersion_patched_ref,       // Output a reference
-							 "SceSblAuthMgr",  // Name of module being hooked
-							 TAI_ANY_LIBRARY, // any library
-							 0xABAB8466,      // NID specifying `ksceSysrootGetSystemSwVersion`
-							 ksceSblAuthMgrCompareSwVersion_patched); // Name of the hook function
-							 
-	kscePfsMgrMount_patched_hook = taiHookFunctionExportForKernel(KERNEL_PID,      // Kernel process
-							 &kscePfsMgrMount_patched_ref,       // Output a reference
-							 "ScePfsMgr",  // Name of module being hooked
-							 TAI_ANY_LIBRARY, // any library
-							 0x2D48AEA2,      // NID specifying `kscePfsMgrMount`
-							 kscePfsMgrMount_patched); // Name of the hook function
-	kscePfsMgrMountWithAuthId_patched_hook = taiHookFunctionExportForKernel(KERNEL_PID,      // Kernel process
-							 &kscePfsMgrMountWithAuthId_patched_ref,       // Output a reference
-							 "ScePfsMgr",  // Name of module being hooked
-							 TAI_ANY_LIBRARY, // any library
-							 0xA772209C,      // NID specifying `kscePfsMgrMountWithAuthId`
-							 kscePfsMgrMountWithAuthId_patched); // Name of the hook function
-	kscePfsMgrUnmount_patched_hook = taiHookFunctionExportForKernel(KERNEL_PID,      // Kernel process
-							 &kscePfsMgrUnmount_patched_ref,       // Output a reference
-							 "ScePfsMgr",  // Name of module being hooked
-							 TAI_ANY_LIBRARY, // any library
-							 0x680BC384,      // NID specifying `kscePfsMgrUnmount`
-							 kscePfsMgrUnmount_patched); // Name of the hook function
-							 
 	module_start_patched_hook = taiHookFunctionExportForKernel(KERNEL_PID,      // Kernel process
 							 &module_start_patched_ref,       // Output a reference
 							 "SceDriverUser",  // Name of module being hooked
@@ -452,44 +357,17 @@ int module_start(SceSize argc, const void *args) {
 							 0x935cd196,      // NID specifying `module_start`
 							 module_start); // Name of the hook function
 	
-	LOG("Installing ksceSblAuthMgrParseSelfHeader hook...\n");
-	/*ksceSblAuthMgrParseSelfHeader_patched_hook = taiHookFunctionExportForKernel(KERNEL_PID,      // Kernel process
-                                 &ksceSblAuthMgrParseSelfHeader_patched_ref,       // Output a reference
-                                 "SceSblAuthMgr",  // Name of module being hooked
-                                 TAI_ANY_LIBRARY, // library : any
-                                 0xF3411881,      // NID specifying `ksceSblAuthMgrParseSelfHeader`
-                                 ksceSblAuthMgrParseSelfHeader_patched); // Name of the hook function*/
-	
-	/*ksceSblAuthMgrParseSelfHeader_patched_hook = taiHookFunctionImportForKernel(KERNEL_PID, 
-                                              &ksceSblAuthMgrParseSelfHeader_patched_ref, 
-                                              "SceKernelModulemgr",
-                                              0x7ABF5135, // SceSblAuthMgrForKernel
-                                              0xF3411881,
-                                              ksceSblAuthMgrParseSelfHeader_patched);*/
-	/*ksceSblAuthMgrSetupOutputBuffer_patched_hook = taiHookFunctionImportForKernel(KERNEL_PID, 
-                                              &ksceSblAuthMgrSetupOutputBuffer_patched_ref, 
-                                              "SceKernelModulemgr",
-                                              0x7ABF5135, // SceSblAuthMgrForKernel
-                                              0x89CCDA2C,
-                                              ksceSblAuthMgrSetupOutputBuffer_patched);
-	ksceSblAuthMgrCopyToOutputBuffer_patched_hook = taiHookFunctionImportForKernel(KERNEL_PID, 
-                                              &ksceSblAuthMgrCopyToOutputBuffer_patched_ref, 
-                                              "SceKernelModulemgr",
-                                              0x7ABF5135, // SceSblAuthMgrForKernel
-                                              0xBC422443,devilkazuya751995
-                                              ksceSblAuthMgrCopyToOutputBuffer_patched);*/
-											  
-	LOG("idps-spoofer_kernel module_start sucessfully ended.\n");
+	LOG("kernel_hooker module_start sucessfully ended.\n");
 	return SCE_KERNEL_START_SUCCESS;
 }
 
 int module_stop(SceSize argc, const void *args) {
-	LOG("Stopping idps-spoofer_kernel...\n");
+	LOG("Stopping kernel_hooker...\n");
 
-	if (ksceAppMgrLaunchAppByPath_patched_hook >= 0) taiHookReleaseForKernel(ksceAppMgrLaunchAppByPath_patched_hook, ksceAppMgrLaunchAppByPath_patched_ref);
-	LOG("kCID hook stopped.\n");
+	//if (ksceAppMgrLaunchAppByPath_patched_hook >= 0) taiHookReleaseForKernel(ksceAppMgrLaunchAppByPath_patched_hook, ksceAppMgrLaunchAppByPath_patched_ref);
+	//LOG("kCID hook stopped.\n");
 	
-	LOG("kplugin-tester module_stop sucessfully ended.\n");
+	LOG("kernel_hooker module_stop sucessfully ended.\n");
 	return SCE_KERNEL_STOP_SUCCESS;
 }
 
