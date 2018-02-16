@@ -161,16 +161,16 @@ SceUID ksceAppMgrLaunchAppByPath_patched(const char *path, const char *cmd, int 
 
 SceUID ksceIdStorageLookup_patched_hook = -1;
 static tai_hook_ref_t ksceIdStorageLookup_patched_ref;
-static int ksceIdStorageLookup_patched(int key, int offset, char *buf, int len) {
+static int ksceIdStorageLookup_patched(uint32_t key, int offset, char *buf, int len) {
 	uint32_t state;
 	LOG("ksceIdStorageLookup hook started.\n");
+	ENTER_SYSCALL(state);
+	int ret = TAI_CONTINUE(int, ksceIdStorageLookup_patched_ref, key, offset, buf, len);
 	LOG("%08X\n", key);
 	LOG("%08X\n", offset);
 	LOG("%08X\n", len);
-	//log_write(text, strlen(text));
+	log_write(buf, len);
 	LOG("\n");
-	ENTER_SYSCALL(state);
-	int ret = TAI_CONTINUE(int, ksceIdStorageLookup_patched_ref, key, offset, buf, len);
 	LOG("ksceIdStorageLookup hook finished: %08X.\n", ret);
 	EXIT_SYSCALL(state);
 	return ret;
